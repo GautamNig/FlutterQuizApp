@@ -1,0 +1,51 @@
+name: flutter_quiz_app
+description: A new Flutter project.
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.12.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  audioplayers: ^0.19.0
+  cupertino_icons: ^1.0.2
+  lottie: ^1.0.1
+  rflutter_alert: ^2.0.4
+  flutter_launcher_icons: ^0.9.1
+  flutter_bloc: ^7.1.0
+  flutter_native_splash: ^1.2.1
+  animated_text_kit: ^4.2.1
+  firebase_core: ^1.2.0
+  firebase_messaging: ^10.0.4
+  flutter_local_notifications: ^8.1.1+1
+  cloud_firestore: ^2.2.0
+  google_fonts: ^2.1.0
+  after_layout: ^1.1.0
+  flutter_easyloading: ^3.0.0
+  connectivity: ^3.0.6
+  cached_network_image: ^3.0.0
+  fl_chart: ^0.36.3
+  url_launcher: ^6.0.9
+  hive: ^2.0.4
+  path_provider: ^2.0.2
+  google_mobile_ads: ^0.13.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+flutter_icons:
+  image_path: "assets/icon.png"
+  android: true
+  iOS: true
+flutter_native_splash:
+  color: "152360"
+  #background_image: "assets/splash.svg"
+  image: assets/splash.png
+  fill: true
+  #android_disable_fullscreen: true
