@@ -226,26 +226,26 @@ class ExpandedEventItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            title,
-            style: TextStyle(fontSize: 16),
-            overflow: TextOverflow.ellipsis,
-          ),
-          SizedBox(height: 8),
+          // Text(
+          //   title,
+          //   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          //   maxLines: 5,
+          // ),
+          // SizedBox(height: 8),
           Wrap(
             children: <Widget>[
               Text(
                 topText,
                 style: TextStyle(
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.bold,
                   fontSize: 12,
                   color: Colors.grey.shade600,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(width: 8),
               Text(
                 date,
+                maxLines: 5,
                 style: TextStyle(
                   fontWeight: FontWeight.w300,
                   fontSize: 12,
