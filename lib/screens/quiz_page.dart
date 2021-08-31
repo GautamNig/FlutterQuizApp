@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:avatar_glow/avatar_glow.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity/connectivity.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_quiz_app/helpers/Constants.dart';
 import 'package:flutter_quiz_app/helpers/extension_methods.dart';
 import 'package:flutter_quiz_app/helpers/local_notification_service.dart';
+import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_user.dart';
 import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_chart.dart';
 import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_questions.dart';
 import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_resources.dart';
@@ -23,9 +25,12 @@ import 'package:flutter_quiz_app/logic/cubit/internet_state.dart';
 import 'package:flutter_quiz_app/logic/cubit/question_cubit.dart';
 import 'package:flutter_quiz_app/logic/cubit/question_state.dart';
 import 'package:flutter_quiz_app/screens/popup_overlay.dart';
+import 'package:flutter_quiz_app/screens/profile_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import 'leader_board_page.dart';
 import 'more_page.dart';
 
 class QuizPage extends StatefulWidget {
@@ -39,6 +44,7 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage>
     with SingleTickerProviderStateMixin {
+  final _firestore = FirebaseFirestore.instance;
   int pageNumber = 1;
   List<int> answerIndexes = [];
   late Future<QuizLevelCollection> getQuestions;
@@ -159,6 +165,28 @@ class _QuizPageState extends State<QuizPage>
                                       builder: (context) => MorePage()));
                             },
                           ),
+                          Constant.userProfileData.username.isEmpty ? AvatarGlow(
+                            endRadius: 60.0,
+                            child: IconButton(
+                              icon: const FaIcon(FontAwesomeIcons.userCircle),
+                              color: Colors.white,
+                              onPressed: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => ProfilePage()));
+                              },
+                            ),
+                          ) : IconButton(
+                            icon: const FaIcon(FontAwesomeIcons.userCircle),
+                            color: Colors.white,
+                            onPressed: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => ProfilePage()));
+                            },
+                          )
                         ],
                       ),
                       body: Container(
@@ -199,18 +227,23 @@ class _QuizPageState extends State<QuizPage>
   }
 
   Future<QuizLevelCollection> fetchData() async {
+
     final _firestore = FirebaseFirestore.instance;
+
+    if (Constant.box.get(Constant.userIdBox) == null) await Constant.addUser();
 
     var quizSnapshotFuture = _firestore.collection('quiz').get();
     var cardsSnapshotFuture = _firestore.collection('cards').get();
     var resourcesSnapshotFuture = _firestore.collection('resources').get();
     var chartSnapshotFuture = _firestore.collection('chart').get();
+    var userSnapshotFuture = _firestore.collection('users').get();
 
     var value = await Future.wait([
       quizSnapshotFuture,
       cardsSnapshotFuture,
       resourcesSnapshotFuture,
-      chartSnapshotFuture
+      chartSnapshotFuture,
+      userSnapshotFuture
     ]);
 
     Constant.slidingCardsList =
@@ -229,6 +262,21 @@ class _QuizPageState extends State<QuizPage>
     Constant.popupOverlayTextColorIntValue = int.parse(Constant.screenDynamicText
         .firstWhere((element) => element.screenName == "PopupPageColors").screenTexts[1]);
 
+
+    value[4].docs.forEach((e) {
+      print(e.data());
+      Constant.users.add(User.fromJson(e.data()));
+    });
+
+    if (Constant.box.get(Constant.userScoreBox) == null) {
+      Constant.box.put(Constant.userScoreBox, <String>[Constant.screenDynamicText
+          .firstWhere((element) => element.screenName == 'QuizVersion')
+        .screenTexts[0], "0"]);
+    }
+
+    Constant.userProfileData =
+        Constant.users.firstWhere((element) => element.userId == Constant.box.get(Constant.userIdBox));
+
     await loadAppAds();
 
     Constant.slidingCardsList!.forEach((element) {
@@ -242,7 +290,7 @@ class _QuizPageState extends State<QuizPage>
     Constant.chartData = ChartData.fromJson(value[3].docs.first.data());
 
     updateUserNotesAndSlidingCardBoxes();
-
+    print('hello2');
     return QuizLevelCollection.fromJson(value[0].docs[0].data());
   }
 
@@ -378,12 +426,13 @@ class _QuizPageState extends State<QuizPage>
                 ),
               ),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
+                  quizLevel == Constant.quizLevelCollection!.quizLevels.length - 1 ? ElevatedButton(
                     child: Text('Retake Quiz'),
-                    onPressed: () {
-                      setState(() {
+                    onPressed: () async{
+                      await updateUserScore();
+                      setState(()  {
                         pageNumber = 1;
                         answerIndexes.clear();
                         Constant.levelQuestionsAnswers.clear();
@@ -397,12 +446,22 @@ class _QuizPageState extends State<QuizPage>
                           width: 1.0,
                           color: Colors.white,
                         )),
-                  ),
+                  ) : Container(width: 0,),
+                  SizedBox(width: 5,),
                   ElevatedButton(
-                    child: Text('Next Level'),
+                    child: Text(quizLevel ==
+                        Constant.quizLevelCollection!.quizLevels.length - 1 ? 'Leader Board' : 'Next Level'),
                     onPressed: quizLevel ==
                             Constant.quizLevelCollection!.quizLevels.length - 1
-                        ? null
+                        ? () async {
+                      EasyLoading.show(status: 'Submitting your score..');
+                      await updateUserScore();
+                      EasyLoading.dismiss();
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => LeaderBoardPage()));
+                        }
                         : () {
                             setState(() {
                               pageNumber = 1;
@@ -593,6 +652,27 @@ class _QuizPageState extends State<QuizPage>
       });
     } on Exception catch (e) {
       // TODO
+    }
+  }
+
+  Future updateUserScore() async {
+    Constant.userProfileData.quizScore = Constant.totalCorrectAnswersAcrossLevels.toString();
+
+    var boxedQuizVersion = Constant.box.get(Constant.userScoreBox)[0];
+    var boxedQuizScore = Constant.box.get(Constant.userScoreBox)[1];
+
+    if(boxedQuizVersion != Constant.screenDynamicText
+        .firstWhere((element) => element.screenName == 'QuizVersion')
+        .screenTexts[0] || boxedQuizScore == "0") {
+
+      await _firestore
+          .collection('users')
+          .doc(Constant.box.get(Constant.userIdBox))
+          .set(Constant.userProfileData.toJson(), SetOptions(merge: true));
+
+      Constant.box.put(Constant.userScoreBox, [Constant.screenDynamicText
+          .firstWhere((element) => element.screenName == 'QuizVersion')
+          .screenTexts[0],Constant.userProfileData.quizScore.toString()]);
     }
   }
 }

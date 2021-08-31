@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quiz_app/helpers/Constants.dart';
 import 'package:flutter_quiz_app/screens/bar_chart.dart';
+import 'package:flutter_quiz_app/screens/poll_page.dart';
 import 'package:flutter_quiz_app/screens/sliding_cards_view.dart';
 
 import 'exhibition_bottom_sheet.dart';

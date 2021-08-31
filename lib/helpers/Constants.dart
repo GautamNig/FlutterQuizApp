@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_user.dart';
 import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_chart.dart';
 import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_questions.dart';
 import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_resources.dart';
@@ -8,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive/hive.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:uuid/uuid.dart';
 
 enum IdentifierNameEnum {
   appIdAndroid,
@@ -26,10 +29,14 @@ enum IdentifierNameEnum {
 
 class Constant{
   static InterstitialAd? interstitialAd;
-
+  static final _firestore = FirebaseFirestore.instance;
   static Box box = Hive.box('UserNotes');
   static String userNotesBox = 'notesBox';
   static String slidingCardsBox = 'slidingCardsBox';
+  static String userIdBox = 'userIdBox';
+  static String userScoreBox = 'userScoreBox';
+  static String defaultUserPic = 'assets/take_a_pic.jpg';
+
   static List<bool> levelQuestionsAnswers = [];
   static int totalCorrectAnswersAcrossLevels = 0;
 
@@ -54,13 +61,14 @@ class Constant{
   static int popupOverlayTextColorIntValue = 0xff000000;
 
   static QuizLevelCollection? quizLevelCollection;
+  static late User userProfileData;
   static ChartData? chartData;
   static List<SlidingCard>? slidingCardsList = [];
   static List<SlidingEvent>? slidingEventsList = [];
   static List<ImageResource> imageResources = [];
   static List<ScreenDynamicText> screenDynamicText = [];
   static List<Identifier> identifiers = [];
-
+  static List<User> users = [];
   static AlertStyle alertSTyle = AlertStyle(
     animationType: AnimationType.fromTop,
     isCloseButton: false,
@@ -81,6 +89,21 @@ class Constant{
             .fontFamily,
         fontWeight: FontWeight.bold),
   );
+
+  static Future addUser() async{
+    var userId = Uuid().v1();
+    // Call the user's CollectionReference to add a new user
+    await _firestore.collection('users').doc(userId).set({
+      'UserId': userId,
+      'UserProfilePicUrl': '',
+      'Username': '',
+      'JoiningDate': Timestamp.fromDate(DateTime.now()),
+      'UserDescription': '',
+      'QuizScore': '0'
+    });
+
+    box.put(userIdBox, userId);
+  }
 
   static Future showAlert(BuildContext context, String title,
       Widget contentWidget) async {
