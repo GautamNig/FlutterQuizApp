@@ -1,9 +1,7 @@
-import 'package:connectivity/connectivity.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_quiz_app/screens/quiz_page.dart';
 
 class LocalNotificationService{
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
@@ -25,7 +23,7 @@ class LocalNotificationService{
   static void display(RemoteMessage message){
     final id = DateTime.now().millisecondsSinceEpoch ~/1000;
     final NotificationDetails notificationDetails = NotificationDetails(
-      android: AndroidNotificationDetails("gdprquizchannel", "gdprquizchannel",
+      android: AndroidNotificationDetails("flutterquizchannel", "flutterquizchannel",
           "This is a channel for GDPR Quiz",
       importance: Importance.max, priority: Priority.high)
     );

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quiz_app/helpers/Constants.dart';
+import 'package:flutter_quiz_app/helpers/constant.dart';
 
 class BorderIcon extends StatelessWidget {
   final Widget child;

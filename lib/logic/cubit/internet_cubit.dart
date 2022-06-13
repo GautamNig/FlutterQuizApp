@@ -1,9 +1,7 @@
 import 'dart:async';
-
 import 'package:bloc/bloc.dart';
 import 'package:connectivity/connectivity.dart';
 import 'package:flutter_quiz_app/constants/enums.dart';
-
 import 'internet_state.dart';
 
 class InternetCubit extends Cubit<InternetState>{

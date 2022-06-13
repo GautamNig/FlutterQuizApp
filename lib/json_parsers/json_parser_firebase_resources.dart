@@ -13,16 +13,19 @@ class Resources {
     required this.screenDynamicTexts,
     required this.identifiers,
     required this.imageResources,
+    required this.developerMessages,
   });
 
   List<ScreenDynamicText> screenDynamicTexts;
   List<Identifier> identifiers;
   List<ImageResource> imageResources;
+  List<String>? developerMessages;
 
   factory Resources.fromJson(Map<String, dynamic> json) => Resources(
     screenDynamicTexts: List<ScreenDynamicText>.from(json["ScreenDynamicTexts"].map((x) => ScreenDynamicText.fromJson(x))),
     identifiers: List<Identifier>.from(json["Identifiers"].map((x) => Identifier.fromJson(x))),
     imageResources: List<ImageResource>.from(json["ImageResources"].map((x) => ImageResource.fromJson(x))),
+      developerMessages: json['DeveloperMessages'].cast<String>()
   );
 
   Map<String, dynamic> toJson() => {
@@ -81,7 +84,7 @@ class ScreenDynamicText {
 
   String screenName;
   List<String> screenTexts;
-  double fontSize;
+  num fontSize;
 
   factory ScreenDynamicText.fromJson(Map<String, dynamic> json) => ScreenDynamicText(
     screenName: json["ScreenName"],

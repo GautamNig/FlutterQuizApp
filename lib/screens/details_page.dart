@@ -1,10 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_quiz_app/helpers/Constants.dart';
+import 'package:flutter_quiz_app/helpers/constant.dart';
 import 'package:flutter_quiz_app/json_parsers/json_parser_sliding_cards.dart';
 import 'package:flutter_quiz_app/widgets/bordericon.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class DetailsPage extends StatefulWidget {
   final SlidingCard slidingCard;
@@ -97,154 +95,150 @@ class _DetailsPageState extends State<DetailsPage> {
                     addVerticalSpace(padding),
                     Padding(
                       padding: sidePadding,
-                      child: Text(
-                        widget.slidingCard.name,
-                        style: TextStyle(fontSize: 16),
-                        overflow: TextOverflow.ellipsis,
+                      child: SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.9,
+                        child: Text(
+                          widget.slidingCard.name,
+                          style: Constant.appHeaderTextSTyle,
+                        ),
                       ),
                     ),
                     addVerticalSpace(padding),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: BouncingScrollPhysics(),
-                      child: Row(
-                          children: getInformationTiles(widget.slidingCard)),
-                    ),
-                    addVerticalSpace(padding),
+                    // SingleChildScrollView(
+                    //   scrollDirection: Axis.horizontal,
+                    //   physics: BouncingScrollPhysics(),
+                    //   child: Row(
+                    //       children: getInformationTiles(widget.slidingCard)),
+                    // ),
+                    // addVerticalSpace(padding),
                     Padding(
                       padding: const EdgeInsets.only(left: 28.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                isTextSelectable = true;
-                              });
-                              var userNotesMap = (Constant.box
-                                  .get(Constant.userNotesBox) as Map);
-                              if (!userNotesMap
-                                  .containsKey(widget.slidingCard.name))
-                                userNotesMap[widget.slidingCard.name] = <int>[];
-                              for (var i = selectionStart;
-                              i < selectionEnd;
-                              ++i) {
-                                if (!(userNotesMap[widget.slidingCard.name]
-                                as List<int>)
-                                    .contains(i)) {
-                                  (userNotesMap[widget.slidingCard.name]
-                                  as List<int>)
-                                      .add(i);
-                                }
-                              }
-                              (userNotesMap[widget.slidingCard.name]
-                              as List<int>)
-                                  .sort();
-                              Constant.box
-                                  .put(Constant.userNotesBox, userNotesMap);
-                              (Constant.box.get(Constant.userNotesBox)[
-                              widget.slidingCard.name] as List<int>)
-                                  .forEach((element) {
-                                print(element);
-                              });
-                            },
-                            child: Icon(
-                              Icons.brush_outlined,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8.0),
-                            child: InkWell(
-                              onTap: () {
-                                setState(() {
-                                  isTextSelectable = true;
-                                });
-
-                                var userNotesMap = (Constant.box
-                                    .get(Constant.userNotesBox) as Map);
-
-                                if (!userNotesMap
-                                    .containsKey(widget.slidingCard.name))
-                                  userNotesMap[widget.slidingCard.name] =
-                                  <int>[];
-
-                                for (var i = selectionStart;
-                                i < selectionEnd;
-                                ++i) {
-                                  if ((userNotesMap[widget.slidingCard.name]
-                                  as List<int>)
-                                      .contains(i))
-                                    (userNotesMap[widget.slidingCard.name]
-                                    as List<int>)
-                                        .remove(i);
-                                }
-                                (userNotesMap[widget.slidingCard.name]
-                                as List<int>)
-                                    .sort();
-                                Constant.box
-                                    .put(Constant.userNotesBox, userNotesMap);
-                                (Constant.box.get(Constant.userNotesBox)[
-                                widget.slidingCard.name] as List<int>)
-                                    .forEach((element) {
-                                  print(element);
-                                });
-                              },
-                              child: Icon(
-                                Icons.phonelink_erase,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    addVerticalSpace(padding),
-                    Padding(
-                      padding: sidePadding,
-                      child: TextSelectionTheme(
-                        data: TextSelectionThemeData(
-                            cursorColor: Colors.white,
-                            selectionColor: Colors.grey),
-                        child: SelectableText.rich(
-                          TextSpan(children: getTextSpans()),
-                          textAlign: TextAlign.justify,
-                          style: themeData.textTheme.bodyText2,
-                          onSelectionChanged: (selection, cause) {
-                            final selectedText = widget.slidingCard.description
-                                .substring(
-                                selection.start, selection.end);
-                            selectionStart = selection.start;
-                            selectionEnd = selection.end;
-                          },
-                          toolbarOptions: ToolbarOptions(
-                              copy: false,
-                              cut: false,
-                              paste: false,
-                              selectAll: false),
-                          showCursor: true,
-                          cursorWidth: 5,
-                          cursorRadius: Radius.circular(20),
-                        ),
-                      ),
-                    ),
-                    addVerticalSpace(30),
-                    Padding(
-                      padding: sidePadding,
-                      child: RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: widget.slidingCard.link,
-                              style: TextStyle(color: Colors.blue),
-                              recognizer: TapGestureRecognizer()
-                                ..onTap = () { launch(widget.slidingCard.link);
-                                },
-                            ),
-                          ],
-                        ),
-                      ),
+                      child: Text(widget.slidingCard.description, style: TextStyle(
+                        fontSize: 14)),
                     )
+                    // Uncomment below to get Text with MARKER.
+                    // Padding(
+                    //   padding: const EdgeInsets.only(left: 28.0),
+                    //   child: Row(
+                    //     mainAxisAlignment: MainAxisAlignment.start,
+                    //     children: [
+                    //       InkWell(
+                    //         onTap: () {
+                    //           setState(() {
+                    //             isTextSelectable = true;
+                    //           });
+                    //           var userNotesMap = (Constant.box
+                    //               .get(Constant.userNotesBox) as Map);
+                    //           if (!userNotesMap
+                    //               .containsKey(widget.slidingCard.name))
+                    //             userNotesMap[widget.slidingCard.name] = <int>[];
+                    //           for (var i = selectionStart;
+                    //           i < selectionEnd;
+                    //           ++i) {
+                    //             if (!(userNotesMap[widget.slidingCard.name]
+                    //             as List<int>)
+                    //                 .contains(i)) {
+                    //               (userNotesMap[widget.slidingCard.name]
+                    //               as List<int>)
+                    //                   .add(i);
+                    //             }
+                    //           }
+                    //           (userNotesMap[widget.slidingCard.name]
+                    //           as List<int>)
+                    //               .sort();
+                    //           Constant.box
+                    //               .put(Constant.userNotesBox, userNotesMap);
+                    //           (Constant.box.get(Constant.userNotesBox)[
+                    //           widget.slidingCard.name] as List<int>)
+                    //               .forEach((element) {
+                    //             print(element);
+                    //           });
+                    //         },
+                    //         child: Icon(
+                    //           Icons.brush_outlined,
+                    //           color: Colors.grey,
+                    //         ),
+                    //       ),
+                    //       Padding(
+                    //         padding: const EdgeInsets.only(left: 8.0),
+                    //         child: InkWell(
+                    //           onTap: () {
+                    //             setState(() {
+                    //               isTextSelectable = true;
+                    //             });
+                    //
+                    //             var userNotesMap = (Constant.box
+                    //                 .get(Constant.userNotesBox) as Map);
+                    //
+                    //             if (!userNotesMap
+                    //                 .containsKey(widget.slidingCard.name))
+                    //               userNotesMap[widget.slidingCard.name] =
+                    //               <int>[];
+                    //
+                    //             for (var i = selectionStart;
+                    //             i < selectionEnd;
+                    //             ++i) {
+                    //               if ((userNotesMap[widget.slidingCard.name]
+                    //               as List<int>)
+                    //                   .contains(i))
+                    //                 (userNotesMap[widget.slidingCard.name]
+                    //                 as List<int>)
+                    //                     .remove(i);
+                    //             }
+                    //             (userNotesMap[widget.slidingCard.name]
+                    //             as List<int>)
+                    //                 .sort();
+                    //             Constant.box
+                    //                 .put(Constant.userNotesBox, userNotesMap);
+                    //             (Constant.box.get(Constant.userNotesBox)[
+                    //             widget.slidingCard.name] as List<int>)
+                    //                 .forEach((element) {
+                    //               print(element);
+                    //             });
+                    //           },
+                    //           child: Icon(
+                    //             Icons.phonelink_erase,
+                    //             color: Colors.grey,
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+                    // addVerticalSpace(padding),
+                    // Padding(
+                    //   padding: sidePadding,
+                    //   child: TextSelectionTheme(
+                    //     data: TextSelectionThemeData(
+                    //         cursorColor: Colors.white,
+                    //         selectionColor: Colors.grey),
+                    //     child: SelectableText.rich(
+                    //       TextSpan(children: getTextSpans()),
+                    //       textAlign: TextAlign.justify,
+                    //       style: themeData.textTheme.bodyText2,
+                    //       onSelectionChanged: (selection, cause) {
+                    //         final selectedText = widget.slidingCard.description
+                    //             .substring(
+                    //             selection.start, selection.end);
+                    //         selectionStart = selection.start;
+                    //         selectionEnd = selection.end;
+                    //         print(selection.start);
+                    //         print(selection.end);
+                    //         print(selectedText);
+                    //         print(cause);
+                    //       },
+                    //       toolbarOptions: ToolbarOptions(
+                    //           copy: false,
+                    //           cut: false,
+                    //           paste: false,
+                    //           selectAll: false),
+                    //       showCursor: true,
+                    //       cursorWidth: 5,
+                    //       cursorRadius: Radius.circular(20),
+                    //     ),
+                    //   ),
+                    // ),
+                    // addVerticalSpace(100),
                   ],
                 ),
               ),

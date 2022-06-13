@@ -1,12 +1,10 @@
-import 'package:connectivity/connectivity.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_quiz_app/helpers/local_notification_service.dart';
-import 'package:flutter_quiz_app/screens/quiz_page.dart';
+import 'package:flutter_quiz_app/screens/quiz_tiles.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -40,6 +38,7 @@ void main() async{
     ..userInteractions = false
     ..dismissOnTap = false;
 
+  EasyLoading.init();
   var document = await getApplicationDocumentsDirectory();
   Hive.init(document.path);
   await Future.wait([
@@ -47,7 +46,9 @@ void main() async{
   ]);
 
   runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
     theme: ThemeData(primarySwatch: Colors.blue, brightness: Brightness.dark),
-    home: QuizPage(Connectivity()),
+    home: QuizTiles(),
+      // home: QuizPage(Connectivity()),
   ));
 }

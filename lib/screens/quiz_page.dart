@@ -1,42 +1,32 @@
 import 'dart:io';
-import 'dart:math' as math;
-
 import 'package:audioplayers/audioplayers.dart';
-import 'package:avatar_glow/avatar_glow.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:connectivity/connectivity.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_quiz_app/helpers/Constants.dart';
-import 'package:flutter_quiz_app/helpers/extension_methods.dart';
+import 'package:flutter_quiz_app/helpers/constant.dart';
 import 'package:flutter_quiz_app/helpers/local_notification_service.dart';
-import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_user.dart';
-import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_chart.dart';
 import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_questions.dart';
-import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_resources.dart';
-import 'package:flutter_quiz_app/json_parsers/json_parser_sliding_cards.dart';
-import 'package:flutter_quiz_app/json_parsers/json_parser_sliding_event.dart';
-import 'package:flutter_quiz_app/logic/cubit/internet_cubit.dart';
-import 'package:flutter_quiz_app/logic/cubit/internet_state.dart';
 import 'package:flutter_quiz_app/logic/cubit/question_cubit.dart';
 import 'package:flutter_quiz_app/logic/cubit/question_state.dart';
 import 'package:flutter_quiz_app/screens/popup_overlay.dart';
-import 'package:flutter_quiz_app/screens/profile_page.dart';
+import 'package:flutter_quiz_app/screens/sign_up_widget.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 import 'leader_board_page.dart';
-import 'more_page.dart';
+import 'dart:math' as math;
+
+BannerAd? banner1;
+BannerAd? banner2;
+bool banner1IsLoaded = false;
+bool banner2IsLoaded = false;
 
 class QuizPage extends StatefulWidget {
-  final Connectivity connectivity;
+  final Quiz quiz;
 
-  QuizPage(this.connectivity);
+  QuizPage(this.quiz);
 
   @override
   _QuizPageState createState() => _QuizPageState();
@@ -47,15 +37,13 @@ class _QuizPageState extends State<QuizPage>
   final _firestore = FirebaseFirestore.instance;
   int pageNumber = 1;
   List<int> answerIndexes = [];
-  late Future<QuizLevelCollection> getQuestions;
+  late Future<Quiz> getQuestions;
   String? token;
   int quizLevel = 0;
   AudioCache audioCache = AudioCache();
   AudioPlayer advancedPlayer = AudioPlayer();
   String? localFilePath;
   String? localAudioCacheURI;
-  late BannerAd banner1;
-  late BannerAd banner2;
 
   var alertStyle = AlertStyle(
       animationType: AnimationType.grow,
@@ -83,7 +71,8 @@ class _QuizPageState extends State<QuizPage>
   @override
   void initState() {
     // TODO: implement initState
-    getQuestions = fetchData();
+    Constant.quizLevelCollection = widget.quiz;
+    Constant.loadAppAds();
     if (Platform.isIOS) {
       audioCache.fixedPlayer?.notificationService.startHeadlessService();
       advancedPlayer.notificationService.startHeadlessService();
@@ -118,228 +107,119 @@ class _QuizPageState extends State<QuizPage>
 
   @override
   Widget build(BuildContext context) {
+    Widget page = getCurrentQuizPage();
+
     return MultiBlocProvider(
       providers: [
-        BlocProvider<InternetCubit>(
-            create: (context) =>
-                InternetCubit(connectivity: widget.connectivity)),
         BlocProvider<QuestionCubit>(create: (context) => QuestionCubit()),
       ],
       child: FlutterEasyLoading(
-        child: BlocBuilder<InternetCubit, InternetState>(
-            builder: (context, state) {
-          if (state is InternetDisconnected) {
-            return Center(
-                child: Text('No internet, please check your connection'));
-          }
-          return FutureBuilder<QuizLevelCollection>(
-              future: getQuestions,
-              builder: (context, data) {
-                if (data.hasData) {
-                  EasyLoading.dismiss();
-
-                  Constant.quizLevelCollection = data.data;
-
-                  checkAndShowPopupOverlay();
-
-                  Widget page = getCurrentQuizPage();
-
-                  return SafeArea(
-                    child: Scaffold(
-                      appBar: AppBar(
-                        title: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 5.0),
-                            child: Text(
-                                '${Constant.quizLevelCollection!.quizLevels[quizLevel].levelNumber}'),
-                          ),
-                        ),
-                        backgroundColor: Constant.colorThree,
-                        actions: [
-                          IconButton(
-                            icon: Icon(Icons.read_more_sharp),
-                            onPressed: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => MorePage()));
-                            },
-                          ),
-                          Constant.userProfileData.username.isEmpty ? AvatarGlow(
-                            endRadius: 60.0,
-                            child: IconButton(
-                              icon: const FaIcon(FontAwesomeIcons.userCircle),
-                              color: Colors.white,
-                              onPressed: () {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => ProfilePage()));
-                              },
-                            ),
-                          ) : IconButton(
-                            icon: const FaIcon(FontAwesomeIcons.userCircle),
-                            color: Colors.white,
-                            onPressed: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => ProfilePage()));
-                            },
-                          )
-                        ],
-                      ),
-                      body: Container(
-                        width: MediaQuery.of(context).size.width,
-                        height: MediaQuery.of(context).size.height,
-                        decoration: Constant.backgroundDecoration,
-                        child: Stack(
-                          children: <Widget>[
-                            ArrowIcons(),
-                            Line(),
-                            Plane(pageNumber ==
-                                Constant
-                                        .quizLevelCollection!
-                                        .quizLevels[quizLevel]
-                                        .levelQuizQuestions
-                                        .length +
-                                    1),
-                            Positioned.fill(
-                              left: 32.0 + 8,
-                              child: AnimatedSwitcher(
-                                child: page,
-                                duration: Duration(milliseconds: 250),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                } else {
-                  EasyLoading.show(status: 'Fetching data..');
-                  return Container();
-                }
-              });
-        }),
-      ),
-    );
-  }
-
-  Future<QuizLevelCollection> fetchData() async {
-
-    final _firestore = FirebaseFirestore.instance;
-
-    if (Constant.box.get(Constant.userIdBox) == null) await Constant.addUser();
-
-    var quizSnapshotFuture = _firestore.collection('quiz').get();
-    var cardsSnapshotFuture = _firestore.collection('cards').get();
-    var resourcesSnapshotFuture = _firestore.collection('resources').get();
-    var chartSnapshotFuture = _firestore.collection('chart').get();
-    var userSnapshotFuture = _firestore.collection('users').get();
-
-    var value = await Future.wait([
-      quizSnapshotFuture,
-      cardsSnapshotFuture,
-      resourcesSnapshotFuture,
-      chartSnapshotFuture,
-      userSnapshotFuture
-    ]);
-
-    Constant.slidingCardsList =
-        CardsCollection.fromJson(value[1].docs[0].data()).slidingCards;
-    Constant.slidingEventsList =
-        EventsCollection.fromJson(value[1].docs[1].data()).slidingEvents;
-
-    Constant.imageResources =
-        Resources.fromJson(value[2].docs.first.data()).imageResources;
-    Constant.screenDynamicText =
-        Resources.fromJson(value[2].docs.first.data()).screenDynamicTexts;
-    Constant.identifiers =
-        Resources.fromJson(value[2].docs.first.data()).identifiers;
-    Constant.popupOverlayBackgroundColorIntValue = int.parse(Constant.screenDynamicText
-        .firstWhere((element) => element.screenName == "PopupPageColors").screenTexts[0]);
-    Constant.popupOverlayTextColorIntValue = int.parse(Constant.screenDynamicText
-        .firstWhere((element) => element.screenName == "PopupPageColors").screenTexts[1]);
-
-
-    value[4].docs.forEach((e) {
-      print(e.data());
-      Constant.users.add(User.fromJson(e.data()));
-    });
-
-    if (Constant.box.get(Constant.userScoreBox) == null) {
-      Constant.box.put(Constant.userScoreBox, <String>[Constant.screenDynamicText
-          .firstWhere((element) => element.screenName == 'QuizVersion')
-        .screenTexts[0], "0"]);
-    }
-
-    Constant.userProfileData =
-        Constant.users.firstWhere((element) => element.userId == Constant.box.get(Constant.userIdBox));
-
-    await loadAppAds();
-
-    Constant.slidingCardsList!.forEach((element) {
-      cacheImage(context, element.picUrl);
-    });
-
-    Constant.slidingEventsList!.forEach((element) {
-      cacheImage(context, element.picUrl);
-    });
-
-    Constant.chartData = ChartData.fromJson(value[3].docs.first.data());
-
-    updateUserNotesAndSlidingCardBoxes();
-    print('hello2');
-    return QuizLevelCollection.fromJson(value[0].docs[0].data());
-  }
-
-  Future cacheImage(BuildContext context, String urlImage) =>
-      precacheImage(CachedNetworkImageProvider(urlImage), context);
-
-  ListTile getListTile(int index, String userAnswer, String correctAnswer) {
-    return ListTile(
-      // leading: Icon(Icons.landscape),
-      leading: userAnswer == correctAnswer
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 4.0),
-                  child: Icon(Icons.check_circle, color: Colors.green),
+          child: SafeArea(
+        child: Scaffold(
+          appBar: AppBar(
+            title: Center(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 5.0),
+                child: Text(
+                  '${Constant.quizLevelCollection!.quizLevels[quizLevel].levelName}',
+                  style: Constant.appHeaderTextSTyle,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            )
-          : Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 4.0),
-                  child: Icon(Icons.cancel, color: Colors.red),
+              ),
+            ),
+            backgroundColor: Constant.colorTwo,
+          ),
+          body: Container(
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.height,
+            decoration: Constant.backgroundDecoration,
+            child: Stack(
+              children: <Widget>[
+                // ArrowIcons(),
+                Line(),
+                Plane(
+                    pageNumber ==
+                        Constant.quizLevelCollection!.quizLevels[quizLevel]
+                                .levelQuizQuestions.length +
+                            1,
+                    audioCache,
+                    quizLevel),
+                Positioned.fill(
+                  left: 32.0 + 8,
+                  child: AnimatedSwitcher(
+                    child: page,
+                    duration: Duration(milliseconds: 250),
+                  ),
                 ),
               ],
             ),
-      title: Text(Constant.quizLevelCollection!.quizLevels[quizLevel]
-          .levelQuizQuestions[index].questionText),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Your Answer: $userAnswer"),
-          Text("Correct Answer: $correctAnswer"),
-        ],
-      ),
-      // trailing:
-      // userAnswer == correctAnswer
-      //     ? Icon(
-      //   Icons.check_circle,
-      //   color: Colors.green,
-      // )
-      //     : Icon(Icons.cancel,
-      //     color: Colors.red),
+          ),
+        ),
+      )),
     );
   }
 
-  void checkAndShowPopupOverlay() {
+  Padding getListTile(int index, String userAnswer, String correctAnswer) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18.0),
+      child: ListTile(
+        // leading: Icon(Icons.landscape),
+        leading: userAnswer == correctAnswer
+            ? Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Icon(Icons.check_circle, color: Colors.green),
+              )
+            : Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Icon(Icons.cancel, color: Colors.red),
+              ),
+        title: Text(Constant.quizLevelCollection!.quizLevels[quizLevel]
+            .levelQuizQuestions[index].questionText),
+        subtitle: Container(
+          margin: const EdgeInsets.all(15.0),
+          padding: const EdgeInsets.all(3.0),
+          decoration: BoxDecoration(
+              border: Border.all(
+                  color: userAnswer == correctAnswer
+                      ? Colors.greenAccent
+                      : Colors.redAccent)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                  text: TextSpan(children: [
+                TextSpan(
+                    text: 'Your answer:\n',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                TextSpan(
+                    text: userAnswer,
+                    style:
+                        TextStyle(fontSize: 14, fontStyle: FontStyle.italic)),
+              ])),
+              // SizedBox(height: 6,),
+              // RichText(text: TextSpan(
+              //     children: [
+              //       TextSpan(text: 'Correct Answer:\n', style: TextStyle(fontSize: 18, fontWeight:  FontWeight.bold)),
+              //       TextSpan(text: correctAnswer,  style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic)),
+              //     ]
+              // )),
+            ],
+          ),
+        ),
+        // trailing:
+        // userAnswer == correctAnswer
+        //     ? Icon(
+        //   Icons.check_circle,
+        //   color: Colors.green,
+        // )
+        //     : Icon(Icons.cancel,
+        //     color: Colors.red),
+      ),
+    );
+  }
+
+  void checkAndShowPopupOverlay() async {
     if (pageNumber ==
             Constant.quizLevelCollection!.quizLevels[quizLevel]
                     .levelQuizQuestions.length +
@@ -349,330 +229,249 @@ class _QuizPageState extends State<QuizPage>
                 .length ==
             Constant.quizLevelCollection!.quizLevels[quizLevel]
                 .levelQuizQuestions.length) {
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
-        Navigator.of(context).push(PopupOverlay());
-        audioCache.play('strike.mp3', mode: PlayerMode.LOW_LATENCY);
+
+      // await Navigator.of(context).push(PopupOverlay());
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if(!Constant.hasPopupBeenShownForThisQuizAttempt) {
+          await Navigator.of(context).push(PopupOverlay());
+          Constant.hasPopupBeenShownForThisQuizAttempt = true;
+        }
       });
     }
   }
 
   Widget getCurrentQuizPage() {
-    return pageNumber ==
-            Constant.quizLevelCollection!.quizLevels[quizLevel]
-                    .levelQuizQuestions.length +
-                1
-        ? Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 30.0, left: 14),
-                child: Text(
-                  quizLevel + 1 ==
-                          Constant.quizLevelCollection!.quizLevels.length
-                      ? 'Quiz finished'
-                      : 'Level complete',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
-                ),
-              ),
-              SizedBox(
-                height: 18,
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: Constant.quizLevelCollection!.quizLevels[quizLevel]
-                      .levelQuizQuestions.length,
-                  itemBuilder: (context, index) {
-                    var userAnswer = Constant
+    if(pageNumber ==
+        Constant.quizLevelCollection!.quizLevels[quizLevel].levelQuizQuestions
+                .length +
+            1) {
+      checkAndShowPopupOverlay();
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 20.0, left: 14),
+            child: Text(
+              quizLevel + 1 == Constant.quizLevelCollection!.quizLevels.length
+                  ? 'Quiz finished'
+                  : 'Level complete',
+              style: Constant.appHeaderTextSTyle,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          SizedBox(
+            height: 18,
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: Constant.quizLevelCollection!.quizLevels[quizLevel]
+                  .levelQuizQuestions.length,
+              itemBuilder: (context, index) {
+                var userAnswer = Constant
+                    .quizLevelCollection!
+                    .quizLevels[quizLevel]
+                    .levelQuizQuestions[index]
+                    .answerOptions[answerIndexes[index]]
+                    .optionText;
+                var correctAnswer = Constant
+                    .quizLevelCollection!
+                    .quizLevels[quizLevel]
+                    .levelQuizQuestions[index]
+                    .answerOptions[Constant
                         .quizLevelCollection!
                         .quizLevels[quizLevel]
                         .levelQuizQuestions[index]
-                        .answerOptions[answerIndexes[index]]
-                        .optionText;
-                    var correctAnswer = Constant
-                        .quizLevelCollection!
-                        .quizLevels[quizLevel]
-                        .levelQuizQuestions![index]
-                        .answerOptions[Constant
-                            .quizLevelCollection!
-                            .quizLevels[quizLevel]
-                            .levelQuizQuestions![index]
-                            .correctAnswerOption]
-                        .optionText;
+                        .correctAnswerOption]
+                    .optionText;
 
-                    return Constant.quizLevelCollection!.quizLevels[quizLevel]
-                                    .levelQuizQuestions.length -
-                                1 ==
-                            index
-                        ? Column(
-                            children: [
-                              getListTile(index, userAnswer, correctAnswer),
-                              // SizedBox(
-                              //   height: 18,
-                              // ),
-                              // Text(
-                              //   'Level ${quizLevel +1} score: $correctAnswersForLevel / ${Constant.quizLevelCollection!.quizLevels[quizLevel].levelQuizQuestions.length}',
-                              //   style: TextStyle(fontSize: 24),
-                              // ),
-                              SizedBox(
-                                height: 20,
-                              ),
-                              Text(
-                                'Total score: ${Constant.totalCorrectAnswersAcrossLevels} / ${Constant.quizLevelCollection!.quizLevels.take(quizLevel + 1).expand((element) => element.levelQuizQuestions).length}',
-                                style: TextStyle(fontSize: 24),
-                              )
-                            ],
-                          )
-                        : getListTile(index, userAnswer, correctAnswer);
-                  },
-                ),
+                return Constant.quizLevelCollection!.quizLevels[quizLevel]
+                                .levelQuizQuestions.length -
+                            1 ==
+                        index
+                    ? Column(
+                        children: [
+                          getListTile(index, userAnswer, correctAnswer),
+                        ],
+                      )
+                    : getListTile(index, userAnswer, correctAnswer);
+              },
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              quizLevel == Constant.quizLevelCollection!.quizLevels.length - 1
+                  ? ElevatedButton(
+                      child: Text('Retake Quiz'),
+                      onPressed: () async {
+                        // if (!await googleSignIn.isSignedIn()) {
+                        //   await Navigator.push(
+                        //       context,
+                        //       MaterialPageRoute(
+                        //           builder: (context) => SignUpPage()));
+                        // }
+                        // await updateUserScore();
+                        setState(() {
+                          pageNumber = 1;
+                          answerIndexes.clear();
+                          Constant.levelQuestionsAnswers.clear();
+                          Constant.totalCorrectAnswersAcrossLevels = 0;
+                          quizLevel = 0;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                          primary: Constant.colorThree,
+                          side: BorderSide(
+                            width: 1.0,
+                            color: Colors.white,
+                          )),
+                    )
+                  : Container(
+                      width: 0,
+                    ),
+              SizedBox(
+                width: 5,
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  quizLevel == Constant.quizLevelCollection!.quizLevels.length - 1 ? ElevatedButton(
-                    child: Text('Retake Quiz'),
-                    onPressed: () async{
-                      await updateUserScore();
-                      setState(()  {
-                        pageNumber = 1;
-                        answerIndexes.clear();
-                        Constant.levelQuestionsAnswers.clear();
-                        Constant.totalCorrectAnswersAcrossLevels = 0;
-                        quizLevel = 0;
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                        primary: Constant.colorThree,
-                        side: BorderSide(
-                          width: 1.0,
-                          color: Colors.white,
-                        )),
-                  ) : Container(width: 0,),
-                  SizedBox(width: 5,),
-                  ElevatedButton(
-                    child: Text(quizLevel ==
-                        Constant.quizLevelCollection!.quizLevels.length - 1 ? 'Leader Board' : 'Next Level'),
-                    onPressed: quizLevel ==
-                            Constant.quizLevelCollection!.quizLevels.length - 1
-                        ? () async {
-                      EasyLoading.show(status: 'Submitting your score..');
-                      await updateUserScore();
-                      EasyLoading.dismiss();
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => LeaderBoardPage()));
-                        }
-                        : () {
-                            setState(() {
-                              pageNumber = 1;
-                              answerIndexes.clear();
-                              Constant.levelQuestionsAnswers.clear();
-                              if (quizLevel <
-                                  Constant.quizLevelCollection!.quizLevels
-                                          .length -
-                                      1) quizLevel++;
-                            });
-                          },
-                    style: ElevatedButton.styleFrom(
-                        primary: Constant.colorThree,
-                        side: BorderSide(
-                          width: 1.0,
-                          color: Colors.white,
-                        )),
-                  ),
-                ],
-              ),
-              Container(
-                height: 60,
-                width: 320,
-                child: AdWidget(ad: banner1),
+              ElevatedButton(
+                child: Text(quizLevel ==
+                        Constant.quizLevelCollection!.quizLevels.length - 1
+                    ? 'Leader Board'
+                    : 'Next Level'),
+                onPressed: quizLevel ==
+                        Constant.quizLevelCollection!.quizLevels.length - 1
+                    ? () => onLeaderBoardButtonClick()
+                    : () {
+                        setState(() {
+                          pageNumber = 1;
+                          answerIndexes.clear();
+                          Constant.levelQuestionsAnswers.clear();
+                          if (quizLevel <
+                              Constant.quizLevelCollection!.quizLevels.length -
+                                  1) quizLevel++;
+                        });
+                      },
+                style: ElevatedButton.styleFrom(
+                    primary: Constant.colorThree,
+                    side: BorderSide(
+                      width: 1.0,
+                      color: Colors.white,
+                    )),
               ),
             ],
-          )
-        : Stack(children: [
-            Page(
-                key: Key('page$pageNumber'),
-                onOptionSelected: (ansIndex) => setState(() {
-                      if (pageNumber <=
-                          Constant.quizLevelCollection!.quizLevels[quizLevel]
-                              .levelQuizQuestions.length) {
-                        answerIndexes.add(ansIndex);
-                        pageNumber++;
-                      }
-                    }),
-                question: Constant.quizLevelCollection!.quizLevels[quizLevel]
-                    .levelQuizQuestions[pageNumber - 1].questionText,
-                answers: Constant.quizLevelCollection!.quizLevels[quizLevel]
-                    .levelQuizQuestions[pageNumber - 1].answerOptions
-                    .map((e) => e.optionText)
-                    .toList(),
-                number: pageNumber,
-                quizLevel: quizLevel),
-            Positioned(
-              bottom: 5,
-              right: 1,
-              child: Text(
-                'Bowling pin icon by Icons8',
-                style: TextStyle(fontSize: 7),
-              ),
-            ),
-            Positioned(
-              child: Container(
-                height: 65,
-                width: 310,
-                child: AdWidget(ad: banner2),
-              ),
-              left: 0,
-              bottom: 8,
-            ),
-          ]);
+          ),
+          (banner1 != null && banner1IsLoaded)
+              ? Container(
+                  height: 60,
+                  width: 320,
+                  child: AdWidget(ad: banner1!),
+                )
+              : Container(),
+        ],
+      );
+    } else {
+      return Stack(children: [
+        Page(
+            key: Key('page$pageNumber'),
+            onOptionSelected: (ansIndex) => setState(() {
+                  if (pageNumber <=
+                      Constant.quizLevelCollection!.quizLevels[quizLevel]
+                          .levelQuizQuestions.length) {
+                    answerIndexes.add(ansIndex);
+                    pageNumber++;
+                  }
+                }),
+            question: Constant.quizLevelCollection!.quizLevels[quizLevel]
+                .levelQuizQuestions[pageNumber - 1].questionText,
+            answers: Constant.quizLevelCollection!.quizLevels[quizLevel]
+                .levelQuizQuestions[pageNumber - 1].answerOptions
+                .map((e) => e.optionText)
+                .toList(),
+            number: pageNumber,
+            quizLevel: quizLevel),
+        Positioned(
+          child: (banner1 != null && banner1IsLoaded)
+              ? Container(
+                  height: 65,
+                  width: 310,
+                  child: AdWidget(ad: banner2!),
+                )
+              : Container(),
+          left: 0,
+          bottom: 8,
+        ),
+      ]);
+    }
   }
 
   @override
   void dispose() {
     // TODO: implement dispose
     super.dispose();
-    banner1.dispose();
-  }
-
-  Future loadAppAds() async{
-    banner1 = BannerAd(
-        size: AdSize.banner,
-        // TEST
-        adUnitId: Platform.isAndroid
-            ? Constant.identifiers
-                .firstWhere((identifier) =>
-                    identifier.identifierName ==
-                    IdentifierNameEnum.bannerAdUnitIdAndroid1.toShortString)
-                .identifierValue
-            : Constant.identifiers
-                .firstWhere((identifier) =>
-                    identifier.identifierName ==
-                    IdentifierNameEnum.adUnitIdiOS.toShortString)
-                .identifierValue,
-        listener: BannerAdListener(),
-        request: AdRequest())
-      ..load();
-
-    banner2 = BannerAd(
-        size: AdSize.banner,
-        // TEST
-        adUnitId: Platform.isAndroid
-            ? Constant.identifiers
-                .firstWhere((identifier) =>
-                    identifier.identifierName ==
-                    IdentifierNameEnum.bannerAdUnitIdAndroid2.toShortString)
-                .identifierValue
-            : Constant.identifiers
-                .firstWhere((identifier) =>
-                    identifier.identifierName ==
-                    IdentifierNameEnum.adUnitIdiOS.toShortString)
-                .identifierValue,
-        listener: BannerAdListener(),
-        request: AdRequest())
-      ..load();
-
-    await InterstitialAd.load(
-        adUnitId: Constant.identifiers
-            .firstWhere((element) =>
-                element.identifierName ==
-                IdentifierNameEnum
-                    .interstitialAdUnitIdAndroid.toShortString)
-            .identifierValue,
-        request: AdRequest(),
-        adLoadCallback: InterstitialAdLoadCallback(
-          onAdLoaded: (InterstitialAd ad) {
-            print('$ad <<<LOADED>>>');
-            Constant.interstitialAd = ad;
-          },
-          onAdFailedToLoad: (LoadAdError error) {
-            print('InterstitialAd failed to load: $error.');
-            Constant.interstitialAd = null;
-          },
-        ));
-  }
-
-  void updateUserNotesAndSlidingCardBoxes() {
-    try {
-      if (Constant.box.get(Constant.userNotesBox) == null) {
-        Constant.box.put(Constant.userNotesBox, Map<String, List<int>>());
-      }
-
-      if (Constant.box.get(Constant.slidingCardsBox) == null) {
-        Constant.box.put(Constant.slidingCardsBox, Map<String, String>());
-      }
-
-      Constant.slidingCardsList!.forEach((element) {
-        if (!(Constant.box.get(Constant.slidingCardsBox) as Map)
-            .containsKey(element.name)) {
-          (Constant.box.get(Constant.slidingCardsBox) as Map)[element.name] =
-              element.description;
-          (Constant.box.get(Constant.userNotesBox) as Map)[element.name] =
-              <int>[];
-        } else if ((Constant.box.get(Constant.slidingCardsBox) as Map)
-                .containsKey(element.name) &&
-            (Constant.box.get(Constant.slidingCardsBox) as Map)[element.name] !=
-                element.description) {
-          (Constant.box.get(Constant.slidingCardsBox) as Map)[element.name] =
-              element.description;
-          (Constant.box.get(Constant.userNotesBox) as Map)[element.name] =
-              <int>[];
-        }
-        Constant.box.put(Constant.slidingCardsBox,
-            Constant.box.get(Constant.slidingCardsBox) as Map);
-        Constant.box.put(Constant.userNotesBox,
-            Constant.box.get(Constant.userNotesBox) as Map);
-      });
-
-      List<String> userNotesMapKeysToDelete = [];
-      List<String> slidingCardsMapKeysToDelete = [];
-
-      (Constant.box.get(Constant.slidingCardsBox) as Map).forEach((key, value) {
-        if (Constant.slidingCardsList!
-                .where((element) => element.name == key)
-                .length ==
-            0) {
-          userNotesMapKeysToDelete.add(key);
-          slidingCardsMapKeysToDelete.add(key);
-        }
-      });
-
-      userNotesMapKeysToDelete.forEach((String name) {
-        if ((Constant.box.get(Constant.userNotesBox) as Map)
-            .keys
-            .contains(name))
-          (Constant.box.get(Constant.userNotesBox) as Map).remove(name);
-      });
-
-      slidingCardsMapKeysToDelete.forEach((String name) {
-        if ((Constant.box.get(Constant.slidingCardsBox) as Map)
-            .keys
-            .contains(name))
-          (Constant.box.get(Constant.slidingCardsBox) as Map).remove(name);
-      });
-    } on Exception catch (e) {
-      // TODO
-    }
+    banner1?.dispose();
+    banner2?.dispose();
+    banner1IsLoaded = false;
+    banner2IsLoaded = false;
   }
 
   Future updateUserScore() async {
-    Constant.userProfileData.quizScore = Constant.totalCorrectAnswersAcrossLevels.toString();
+    print('Updating user score......');
+    await _firestore.runTransaction((transaction) async {
+      if (Constant.quizLevelCollection!.quizUsers
+              .indexWhere((element) => element == currentUser!.id) ==
+          -1) {
+        currentUser!.quizScorePerVersion[Constant.quizLevelCollection!.quizId
+            .toString()] = Constant.totalCorrectAnswersAcrossLevels.toDouble();
 
-    var boxedQuizVersion = Constant.box.get(Constant.userScoreBox)[0];
-    var boxedQuizScore = Constant.box.get(Constant.userScoreBox)[1];
+        transaction
+            .update(_firestore.collection('quiz').doc(widget.quiz.quizId), {
+          'QuizUsers': FieldValue.arrayUnion([currentUser!.id])
+        });
 
-    if(boxedQuizVersion != Constant.screenDynamicText
-        .firstWhere((element) => element.screenName == 'QuizVersion')
-        .screenTexts[0] || boxedQuizScore == "0") {
+        Constant.quizLevelCollection!.quizUsers.add(currentUser!.id);
 
-      await _firestore
-          .collection('users')
-          .doc(Constant.box.get(Constant.userIdBox))
-          .set(Constant.userProfileData.toJson(), SetOptions(merge: true));
+        final Map<String, dynamic> data = new Map<String, dynamic>();
+        data['photoUrl'] = currentUser!.photoUrl;
+        data['displayName'] = currentUser!.displayName;
+        data['bio'] = currentUser!.bio;
+        data['id'] = currentUser!.id;
+        data['email'] = currentUser!.email;
+        data['quizScorePerVersion'] = currentUser!.quizScorePerVersion;
+        data['username'] = currentUser!.username;
+        data['lastQuizTakenTime'] = DateTime.now();
+        data['joiningDateTime'] = currentUser!.joiningDateTime;
 
-      Constant.box.put(Constant.userScoreBox, [Constant.screenDynamicText
-          .firstWhere((element) => element.screenName == 'QuizVersion')
-          .screenTexts[0],Constant.userProfileData.quizScore.toString()]);
+        print(data['quizScorePerVersion']);
+
+        transaction.update(
+            _firestore.collection('users').doc(currentUser!.id), data);
+      }
+    });
+  }
+
+  Future onLeaderBoardButtonClick() async {
+    if (await googleSignIn.isSignedIn()) {
+      EasyLoading.show();
+      await updateUserScore();
+      EasyLoading.dismiss();
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => LeaderBoardPage()));
+    } else {
+      var signUpPageResult = await Navigator.push(
+          context, MaterialPageRoute(builder: (context) => SignUpPage()));
+
+      if (signUpPageResult == false) return;
+
+      var signInStatus = await googleSignIn.isSignedIn();
+      setState(() {
+        isUserSignedIn = signInStatus;
+      });
+      if (isUserSignedIn) {
+        EasyLoading.show();
+        await updateUserScore();
+        EasyLoading.dismiss();
+
+        await Navigator.push(context,
+            MaterialPageRoute(builder: (context) => LeaderBoardPage()));
+      }
     }
   }
 }
@@ -714,6 +513,7 @@ class _PageState extends State<Page> with SingleTickerProviderStateMixin {
   List<GlobalKey<_ItemFaderState>> keys = [];
   int selectedOptionKeyIndex = 0;
   late AnimationController _animationController;
+  int prevQuizLevel = 0, prevQuestionNumber = 0, prevSelectedOptionKeyIndex = 0;
 
   @override
   void initState() {
@@ -721,6 +521,7 @@ class _PageState extends State<Page> with SingleTickerProviderStateMixin {
     keys = List.generate(
       Constant.quizLevelCollection!.quizLevels[widget.quizLevel]
               .levelQuizQuestions.length +
+          3 +
           widget.answers.length,
       (_) => GlobalKey<_ItemFaderState>(),
     );
@@ -769,13 +570,21 @@ class _PageState extends State<Page> with SingleTickerProviderStateMixin {
         Spacer(),
         ...widget.answers.map((String answer) {
           int answerIndex = widget.answers.indexOf(answer);
-          int keyIndex = answerIndex + 2;
+          int keyIndex = answerIndex + 3;
           return ItemFader(
             key: keys[keyIndex],
             child: OptionItem(
               name: answer,
-              onTap: (offset) => onTap(keyIndex, offset, answerIndex,
-                  widget.number, widget.quizLevel),
+              onTap: (offset) {
+                if (prevQuizLevel == widget.quizLevel &&
+                    prevQuestionNumber == widget.number) {
+                } else {
+                  onTap(keyIndex - 1, offset, answerIndex, widget.number,
+                      widget.quizLevel);
+                  prevQuizLevel = widget.quizLevel;
+                  prevQuestionNumber = widget.number;
+                }
+              },
               showDot: selectedOptionKeyIndex != keyIndex,
             ),
           );
@@ -1011,8 +820,10 @@ class ArrowIcons extends StatelessWidget {
 
 class Plane extends StatefulWidget {
   final bool isLevelComplete;
+  final AudioCache audioCache;
+  final int quizLevel;
 
-  Plane(this.isLevelComplete);
+  Plane(this.isLevelComplete, this.audioCache, this.quizLevel);
 
   @override
   _PlaneState createState() => _PlaneState();
@@ -1028,7 +839,7 @@ class _PlaneState extends State<Plane> with SingleTickerProviderStateMixin {
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 450),
+      duration: const Duration(milliseconds: 450),
     );
     _animation = CurvedAnimation(
       parent: _animationController.view,
@@ -1048,53 +859,106 @@ class _PlaneState extends State<Plane> with SingleTickerProviderStateMixin {
     return BlocListener<QuestionCubit, QuestionState>(
       listener: (context, state) {
         if (state is AnsweredCorrectly) {
+          widget.audioCache.play('correct.mp3');
           _animationController.forward(from: 0);
           Constant.levelQuestionsAnswers.add(true);
           Constant.totalCorrectAnswersAcrossLevels++;
-        } else if (state is AnsweredInCorrectly)
+        } else if (state is AnsweredInCorrectly) {
+          widget.audioCache.play('wrong.mp3');
           Constant.levelQuestionsAnswers.add(false);
+        }
       },
       child: widget.isLevelComplete
-          ? Positioned(
-              left: 38,
-              top: 5,
-              child: Stack(children: [
-                Card(
-                  shape: BeveledRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  color: Colors.white,
-                  child: Container(
-                    height: 60,
-                    width: 60,
-                    child: Center(
-                      child: Text(
-                        '${Constant.levelQuestionsAnswers.where((element) => element == true).length.toString()}/${Constant.levelQuestionsAnswers.length}',
-                        style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Constant.colorOne),
+          ? Stack(children: [
+              Positioned(
+                  left: 38,
+                  top: 5,
+                  child: Stack(children: [
+                    Card(
+                      shape: CircleBorder(
+                        side: BorderSide(color: Colors.white, width: 1),
+                        //rderRadius: BorderRadius.circular(10),
+                      ),
+                      // shape: RoundedRectangleBorder(
+                      //   side: BorderSide(color: Colors.white70, width: 1),
+                      //   borderRadius: BorderRadius.circular(10),
+                      // ),
+                      color: Colors.white,
+                      child: Container(
+                        height: 60,
+                        width: 60,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 10.0),
+                          child: Center(
+                            child: Text(
+                              '${Constant.levelQuestionsAnswers.where((element) => element == true).length.toString()}/${Constant.levelQuestionsAnswers.length}',
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Constant.colorOne),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                Positioned.fill(
-                    child: Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Text(
-                        'LEVEL SCORE',
-                        style: TextStyle(
-                            color: Constant.colorOne,
-                            fontSize: 6,
-                            fontWeight: FontWeight.bold),
-                      )),
-                ))
-              ]))
+                    Positioned.fill(
+                        child: Padding(
+                      padding: const EdgeInsets.only(top: 18.0),
+                      child: Align(
+                          alignment: Alignment.topCenter,
+                          child: Text(
+                            // 'LEVEL SCORE',
+                            'SCORE',
+                            style: TextStyle(
+                                color: Constant.colorOne,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold),
+                          )),
+                    )),
+                  ])),
+              // Positioned(
+              //     right: 2,
+              //     top: 5,
+              //     child: Stack(children: [
+              //       Card(
+              //         shape: BeveledRectangleBorder(
+              //           borderRadius: BorderRadius.circular(10.0),
+              //         ),
+              //         color: Colors.white,
+              //         child: Container(
+              //           height: 60,
+              //           width: 60,
+              //           child: Center(
+              //             child: Text(
+              //               '${Constant.totalCorrectAnswersAcrossLevels}/'
+              //               '${Constant.quizLevelCollection!.quizLevels.take(widget.quizLevel + 1).expand((element) => element.levelQuizQuestions).length}',
+              //               style: TextStyle(
+              //                   fontSize: 24,
+              //                   fontWeight: FontWeight.bold,
+              //                   color: Constant.colorOne),
+              //             ),
+              //           ),
+              //         ),
+              //       ),
+              //       Positioned.fill(
+              //           child: Padding(
+              //         padding: const EdgeInsets.only(bottom: 8.0),
+              //         child: Align(
+              //             alignment: Alignment.bottomCenter,
+              //             child: Text(
+              //               'TOTAL SCORE',
+              //               style: TextStyle(
+              //                   color: Constant.colorOne,
+              //                   fontSize: 7,
+              //                   fontWeight: FontWeight.bold),
+              //             )),
+              //       )),
+              //     ]))
+            ])
           : Positioned(
               left: 32.0 + 8,
               top: 10,
+              // child: Image.asset('assets/BowlingPin.png'),
               child: AnimatedBuilder(
                 animation: _animation,
                 builder: (context, child) {
@@ -1107,7 +971,7 @@ class _PlaneState extends State<Plane> with SingleTickerProviderStateMixin {
                     child: child,
                   )..transform.rotateZ(math.pi / 2);
                 },
-                child: Image.asset('assets/BowlingPin.png'),
+                child: Image.asset('assets/BowlingPin.png', width:65, height:65),
               ),
             ),
     );

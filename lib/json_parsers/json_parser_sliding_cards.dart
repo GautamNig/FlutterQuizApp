@@ -42,12 +42,12 @@ class SlidingCard {
   List<InformationTile> informationTiles;
 
   factory SlidingCard.fromJson(Map<String, dynamic> json) => SlidingCard(
-      name: json["Name"],
-      description: json["Date"],
-      cardRating: json["CardRating"],
-      picUrl: json["PicUrl"],
-      link: json["Link"],
-      informationTiles: json["InformationTiles"] != null ? List<InformationTile>.from(json["InformationTiles"].map((x) => InformationTile.fromJson(x))) : [],
+    name: json["Name"],
+    description: json["Date"],
+    cardRating: json["CardRating"],
+    picUrl: json["PicUrl"],
+    link: json["Link"],
+    informationTiles: json["InformationTiles"] != null ? List<InformationTile>.from(json["InformationTiles"].map((x) => InformationTile.fromJson(x))) : [],
   );
 
   Map<String, dynamic> toJson() => {

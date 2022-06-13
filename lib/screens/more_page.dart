@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quiz_app/helpers/Constants.dart';
+import 'package:flutter_quiz_app/helpers/constant.dart';
 import 'package:flutter_quiz_app/screens/bar_chart.dart';
-import 'package:flutter_quiz_app/screens/poll_page.dart';
 import 'package:flutter_quiz_app/screens/sliding_cards_view.dart';
 
 import 'exhibition_bottom_sheet.dart';
@@ -13,7 +12,7 @@ class MorePage extends StatelessWidget {
       appBar: AppBar(
         actions: [
           IconButton(
-            icon: Icon(Icons.bar_chart_outlined),
+            icon: Icon(Icons.bar_chart_outlined, color: Constant.colorIcon,),
             onPressed: () {
               // interstitialAd.show();
               Navigator.push(
@@ -27,11 +26,12 @@ class MorePage extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Text('Read More'),
+              Text('Read More', style: Constant.appHeaderTextSTyle,
+                overflow: TextOverflow.ellipsis,),
             ],
           ),
         ),
-        backgroundColor: Constant.colorThree,
+        backgroundColor: Constant.colorTwo,
       ),
       body: Container(
         decoration: Constant.backgroundDecoration,
@@ -63,7 +63,9 @@ class Header extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Text(
-        Constant.screenDynamicText.where((element) => element.screenName == "MorePage").first.screenTexts[0],
+        Constant.screenDynamicText.where((element) =>
+                    element.screenName == "MorePage")
+                    .first.screenTexts[0],
         style: TextStyle(
           color: Colors.white,
           fontSize: 22,

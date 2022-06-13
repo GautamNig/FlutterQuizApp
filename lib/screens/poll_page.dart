@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_quiz_app/helpers/Constants.dart';
 import 'package:polls/polls.dart';
+
+import '../helpers/constant.dart';
 
 class PollView extends StatefulWidget {
   @override

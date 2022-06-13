@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_quiz_app/helpers/Constants.dart';
+import 'package:flutter_quiz_app/helpers/constant.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'details_page.dart';
@@ -22,7 +22,7 @@ class _SlidingCardsViewState extends State<SlidingCardsView> {
     super.initState();
     pageController = PageController(viewportFraction: 0.8);
     pageController.addListener(() {
-      setState(() => pageOffset = pageController!.page);
+      setState(() => pageOffset = pageController.page);
     });
   }
 
@@ -136,13 +136,13 @@ class CardContent extends StatelessWidget {
 
   const CardContent(
       {Key? key,
-      required this.name,
-      required this.description,
-      required this.cardRating,
-      required this.picUrl,
-      required this.offset,
-      this.interstitialAd,
-      required this.counter})
+        required this.name,
+        required this.description,
+        required this.cardRating,
+        required this.picUrl,
+        required this.offset,
+        this.interstitialAd,
+        required this.counter})
       : super(key: key);
 
   @override
@@ -182,9 +182,9 @@ class CardContent extends StatelessWidget {
                   ),
                   style: ButtonStyle(
                     backgroundColor:
-                        MaterialStateProperty.all<Color>(Constant.colorThree),
+                    MaterialStateProperty.all<Color>(Constant.colorThree),
                     foregroundColor:
-                        MaterialStateProperty.all<Color>(Colors.white),
+                    MaterialStateProperty.all<Color>(Colors.white),
                     shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                       RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18.0),
@@ -212,16 +212,16 @@ class CardContent extends StatelessWidget {
                 ),
               ),
               Spacer(),
-              Transform.translate(
-                offset: Offset(32 * offset, 0),
-                child: Text(cardRating,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-              SizedBox(width: 16),
+              // Transform.translate(
+              //   offset: Offset(32 * offset, 0),
+              //   child: Text(cardRating,
+              //     style: TextStyle(
+              //       fontWeight: FontWeight.bold,
+              //       fontSize: 20,
+              //     ),
+              //   ),
+              // ),
+              // SizedBox(width: 16),
             ],
           )
         ],

@@ -1,19 +1,12 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:floating_action_bubble/floating_action_bubble.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_quiz_app/widgets/progress.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:giphy_picker/giphy_picker.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:quiz_kitchen/helpers/Constants.dart';
-import 'package:quiz_kitchen/helpers/extension_methods.dart';
-import 'package:quiz_kitchen/screens/quizlevel_configuration.dart';
+import 'package:flutter_quiz_app/screens/quizlevel_configuration.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
-import 'package:uuid/uuid.dart';
+import '../helpers/constant.dart';
 
 class NewQuiz extends StatefulWidget {
   final String quizId;
@@ -28,35 +21,15 @@ class NewQuiz extends StatefulWidget {
 
 class _NewQuizState extends State<NewQuiz> with SingleTickerProviderStateMixin {
   final _firestore = FirebaseFirestore.instance;
-  File _image = File('');
-  final picker = ImagePicker();
-  bool isImageUpdated = false;
-  String imageDownloadUrl = '';
-  String _previousImage = '';
   bool isEditing = false;
   bool isUploadInProgress = false;
   int pageNumber = 1;
   Map<String, dynamic> mappedQuestionsAndAnswers = {};
 
-  Animation<double>? _animation;
-  AnimationController? _animationController;
-
-  final _formKey = GlobalKey<FormState>();
-  GiphyGif? _gif;
-
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 260),
-    );
-
-    final curvedAnimation =
-        CurvedAnimation(curve: Curves.easeInOut, parent: _animationController!);
-    _animation = Tween<double>(begin: 0, end: 1).animate(curvedAnimation);
 
     if (widget.isEditing)
       for (var i = 0; i < Constant.quiz.quizLevels.length; i++) {
@@ -121,343 +94,220 @@ class _NewQuizState extends State<NewQuiz> with SingleTickerProviderStateMixin {
                 .toList(),
             number: pageNumber,
             quizLevel: widget.quizLevel,
-            mappedQuestionsAndAnswers: mappedQuestionsAndAnswers,
-            giphyGif: _gif);
+            mappedQuestionsAndAnswers: mappedQuestionsAndAnswers);
 
-    return WillPopScope(
+    return Constant.isBusy ? circularProgress() : WillPopScope(
       onWillPop: () async => false,
-      child: Form(
-        key: _formKey,
-        child: Scaffold(
-          floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
-          floatingActionButton: Padding(
-            padding: const EdgeInsets.only(top: 188.0),
-            child: FloatingActionBubble(
-              items: <Bubble>[
-                Bubble(
-                  title: "Gif",
-                  iconColor: Colors.white,
-                  bubbleColor: Constant.appBarColor,
-                  icon: const FaIcon(FontAwesomeIcons.solidKissWinkHeart).icon!,
-                  titleStyle:
-                      const TextStyle(fontSize: 16, color: Colors.white),
-                  onPress: () async {
-                    _animationController?.reverse();
-                    final gif = await GiphyPicker.pickGif(
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Constant.colorTwo,
+          title: Center(
+              child: Text(widget.isEditing
+                  ? 'Editing ${Constant.quiz.quizLevels[widget.quizLevel].levelName}'
+                  : Constant.quiz.quizLevels[widget.quizLevel].levelName)),
+          actions: [
+            IconButton(
+                onPressed: () async {
+                  await Alert(
                       context: context,
-                      apiKey: Constant.identifiers
-                          .firstWhere((element) =>
-                              element.identifierName ==
-                              IdentifierNameEnum.appIdGiphy.toShortString)
-                          .identifierValue,
-                      fullScreenDialog: false,
-                      previewType: GiphyPreviewType.previewWebp,
-                      decorator: GiphyDecorator(
-                        showAppBar: false,
-                        searchElevation: 4,
-                        giphyTheme: ThemeData.dark().copyWith(
-                          inputDecorationTheme: const InputDecorationTheme(
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
+                      style: AlertStyle(
+                        animationType: AnimationType.fromTop,
+                        isCloseButton: false,
+                        isOverlayTapDismiss: false,
+                        backgroundColor: Constant.colorThree,
+                        titleStyle: TextStyle(color: Colors.white),
+                        descStyle: TextStyle(fontWeight: FontWeight.bold),
+                        animationDuration: Duration(milliseconds: 400),
+                        alertBorder: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(0.0),
+                          side: const BorderSide(
+                            color: Colors.white,
                           ),
                         ),
                       ),
-                    );
-
-                    if (gif != null) {
-                      if (Constant
-                              .quiz
-                              .quizLevels[widget.quizLevel]
-                              .levelQuizQuestions[pageNumber - 1]
-                              .questionGiphyOrImageUrl
-                              .isNotEmpty &&
-                          Constant
-                              .quiz
-                              .quizLevels[widget.quizLevel]
-                              .levelQuizQuestions[pageNumber - 1]
-                              .questionGiphyOrImageUrl
-                              .startsWith(
-                                  'https://firebasestorage.googleapis.com/'))
-                        await FirebaseStorage.instance
-                            .refFromURL(Constant
-                                .quiz
-                                .quizLevels[widget.quizLevel]
-                                .levelQuizQuestions[pageNumber - 1]
-                                .questionGiphyOrImageUrl)
-                            .delete();
-                      setState(() => _gif = gif);
-                      String originalImageUrl = '';
-                      if (gif.images.original != null) {
-                        originalImageUrl = gif.images.original!.url ?? '';
-                      }
-                      Constant
-                          .quiz
-                          .quizLevels[widget.quizLevel]
-                          .levelQuizQuestions[pageNumber - 1]
-                          .questionGiphyOrImageUrl = originalImageUrl;
-                    }
-                  },
-                ),
-                Bubble(
-                    title: "Image",
-                    iconColor: Colors.white,
-                    bubbleColor: Constant.appBarColor,
-                    icon: FaIcon(FontAwesomeIcons.camera).icon!,
-                    titleStyle: TextStyle(fontSize: 16, color: Colors.white),
-                    onPress: () async {
-                      await pickImage();
-                      if (isImageUpdated) {
-                        EasyLoading.show(status: '');
-                        await uploadPic().then((value) async {
-                          while (imageDownloadUrl.isEmpty) {
-                            await Future.delayed(Duration(milliseconds: 300));
-                          }
-                          isImageUpdated = false;
-                          if (_previousImage.isNotEmpty &&
-                              _previousImage.startsWith(
-                                  'https://firebasestorage.googleapis.com/'))
-                            await FirebaseStorage.instance
-                                .refFromURL(_previousImage)
-                                .delete();
-
-                          _previousImage = '';
-                          Constant
-                              .quiz
-                              .quizLevels[widget.quizLevel]
-                              .levelQuizQuestions[pageNumber - 1]
-                              .questionGiphyOrImageUrl = imageDownloadUrl;
-                          setState(() {
-                            _gif = null;
-                          });
-                          EasyLoading.dismiss();
-                        });
-                      }
-                    }),
-              ],
-              // animation controller
-              animation: _animation!,
-
-              // On pressed change animation state
-              onPress: () {
-                if (_animationController!.isDismissed)
-                  _animationController?.forward();
-                else
-                  _animationController?.reset();
-              },
-              backGroundColor: Constant.appBarColor,
-              // Floating Action button Icon color
-              iconColor: Colors.white,
-              iconData: Icon(Icons.attach_file).icon!,
-            ),
-          ),
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            backgroundColor: Constant.appBarColor,
-            title: Center(
-                child: Text(widget.isEditing
-                    ? 'Editing ${Constant.quiz.quizLevels[widget.quizLevel].levelName}'
-                    : Constant.quiz.quizLevels[widget.quizLevel].levelName)),
-            actions: [
-              IconButton(
-                  onPressed: () async {
-                    await Alert(
-                        context: context,
-                        style: AlertStyle(
-                          animationType: AnimationType.fromTop,
-                          isCloseButton: false,
-                          isOverlayTapDismiss: false,
-                          backgroundColor: Constant.colorThree,
-                          titleStyle: TextStyle(color: Colors.white),
-                          descStyle: TextStyle(fontWeight: FontWeight.bold),
-                          animationDuration: Duration(milliseconds: 400),
-                          alertBorder: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(0.0),
-                            side: const BorderSide(
-                              color: Colors.white,
+                      title: "Delete Quiz?",
+                      content: const Text(
+                          'Are you sure you want to discard cooking this quiz?'),
+                      buttons: [
+                        DialogButton(
+                            child: const Text(
+                              'Ok',
+                              style: TextStyle(color: Constant.colorThree),
                             ),
-                          ),
-                        ),
-                        title: "Delete Quiz?",
-                        content: const Text(
-                            'Are you sure you want to discard cooking this quiz?'),
-                        buttons: [
-                          DialogButton(
-                              child: const Text(
-                                'Ok',
-                                style: TextStyle(color: Constant.colorThree),
-                              ),
-                              color: Colors.white70,
-                              onPressed: () async {
-                                if (Constant.quiz.quizId.isNotEmpty) {
-                                  Constant.quiz.quizLevels.forEach((ql) {
-                                    ql.levelQuizQuestions.forEach((ques) async {
-                                      if (ques.questionGiphyOrImageUrl
-                                              .isNotEmpty &&
-                                          ques.questionGiphyOrImageUrl.startsWith(
-                                              'https://firebasestorage.googleapis.com/'))
-                                        await FirebaseStorage.instance
-                                            .refFromURL(
-                                                ques.questionGiphyOrImageUrl)
-                                            .delete();
-                                    });
+                            color: Colors.white70,
+                            onPressed: () async {
+                              if (Constant.quiz.quizId.isNotEmpty) {
+                                Constant.quiz.quizLevels.forEach((ql) {
+                                  ql.levelQuizQuestions.forEach((ques) async {
+                                    if (ques.questionGiphyOrImageUrl
+                                            .isNotEmpty &&
+                                        ques.questionGiphyOrImageUrl.startsWith(
+                                            'https://firebasestorage.googleapis.com/'))
+                                      await FirebaseStorage.instance
+                                          .refFromURL(
+                                              ques.questionGiphyOrImageUrl)
+                                          .delete();
                                   });
-                                  await _firestore
-                                      .collection('quiz')
-                                      .doc(Constant.quiz.quizId)
-                                      .delete();
-                                }
-                                Constant.quiz = Constant.newQuiz;
-                                Navigator.popUntil(
-                                    context, (route) => route.isFirst);
-                              }),
-                          DialogButton(
-                              child: const Text(
-                                'Cancel',
-                                style:
-                                    const TextStyle(color: Constant.colorThree),
-                              ),
-                              color: Colors.white70,
-                              onPressed: () {
-                                Navigator.pop(context);
-                              })
-                        ]).show();
-                  },
-                  icon: const FaIcon(FontAwesomeIcons.trash))
-            ],
-          ),
-          body: Container(
-            height: MediaQuery.of(context).size.height - 80,
-            decoration: Constant.backgroundDecoration,
-            child: SafeArea(
-              child: Stack(
-                children: <Widget>[
-                  ArrowIcons(),
-                  Plane(),
-                  // Line(),
-                  Positioned.fill(
-                    left: 32.0 + 8,
-                    child: AnimatedSwitcher(
-                      child: Column(
-                        children: [
-                          page,
-                          Padding(
-                            padding: const EdgeInsets.only(left: 50.0),
-                            child: Row(
-                              children: [
-                                ElevatedButton(
-                                  onPressed: Constant
-                                              .quiz
-                                              .quizLevels[widget.quizLevel]
-                                              .levelQuizQuestions
-                                              .length >
-                                          pageNumber
-                                      ? null
-                                      : () async {
-                                          if (await validatePageAndFillUpInMemoryQuizQuestion()) {
-                                            setState(() {
-                                              _gif = null;
-                                            });
-                                            if (widget.quizLevel ==
-                                                    Constant.quiz.quizLevels
-                                                            .length -
-                                                        1 &&
-                                                Constant
-                                                        .quiz
-                                                        .quizLevels[
-                                                            widget.quizLevel]
-                                                        .levelQuizQuestions
-                                                        .length ==
-                                                    pageNumber - 1) {
-                                              pageNumber = 0;
-                                              EasyLoading.show(status: '');
-                                              //TODO: Check isCooking bool updated ?
-                                              Constant.quiz.isCooking = false;
-                                              await _firestore
-                                                  .collection('quiz')
-                                                  .doc(Constant.quiz.quizId)
-                                                  .set(Constant.quiz.toJson());
-
-                                              Constant.quiz = Constant.newQuiz;
-
-                                              Navigator.popUntil(context,
-                                                  (route) => route.isFirst);
-                                              EasyLoading.dismiss();
-                                            } else {
-                                              if (widget.isEditing)
-                                                Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            NewQuiz(
-                                                                Constant.quiz
-                                                                    .quizId,
-                                                                widget.quizLevel +
-                                                                    1,
-                                                                true)));
-                                              else
-                                                Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            QuizLevelConfiguration(
-                                                                widget.quizLevel +
-                                                                    1)));
-                                            }
-                                          }
-                                        },
-                                  child: Text(widget.quizLevel ==
-                                          Constant.quiz.quizLevels.length - 1
-                                      ? 'Publish Quiz'
-                                      : 'Next Level'),
-                                  style: ElevatedButton.styleFrom(
-                                    primary: Constant.appBarColor,
-                                    side: const BorderSide(
-                                      width: 1.0,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(
-                                  width: 20,
-                                ),
-                                ElevatedButton(
-                                  onPressed: pageNumber <
-                                          Constant
-                                              .quiz
-                                              .quizLevels[widget.quizLevel]
-                                              .levelQuizQuestions
-                                              .length
-                                      ? () async {
-                                          setState(() {
-                                            _gif = null;
-                                          });
-                                          await validatePageAndFillUpInMemoryQuizQuestion();
-                                        }
-                                      : null,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: const Text('Next Ques'),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    primary: Constant.appBarColor,
-                                    side: const BorderSide(
-                                      width: 1.0,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                                });
+                                await _firestore
+                                    .collection('quiz')
+                                    .doc(Constant.quiz.quizId)
+                                    .delete();
+                              }
+                              Constant.quiz = Constant.newQuiz;
+                              Navigator.popUntil(
+                                  context, (route) => route.isFirst);
+                            }),
+                        DialogButton(
+                            child: const Text(
+                              'Cancel',
+                              style:
+                                  const TextStyle(color: Constant.colorThree),
                             ),
+                            color: Colors.white70,
+                            onPressed: () {
+                              Navigator.pop(context);
+                            })
+                      ]).show();
+                },
+                icon: const FaIcon(FontAwesomeIcons.trash))
+          ],
+        ),
+        body: Container(
+          height: MediaQuery.of(context).size.height - 80,
+          decoration: Constant.backgroundDecoration,
+          child: SafeArea(
+            child: Stack(
+              children: <Widget>[
+                ArrowIcons(),
+                // Plane(),
+                // Line(),
+                Positioned.fill(
+                  left: 32.0 + 8,
+                  child: AnimatedSwitcher(
+                    child: Column(
+                      children: [
+                        page,
+                        Padding(
+                          padding: const EdgeInsets.only(left: 50.0),
+                          child: Row(
+                            children: [
+                              ElevatedButton(
+                                onPressed: Constant
+                                            .quiz
+                                            .quizLevels[widget.quizLevel]
+                                            .levelQuizQuestions
+                                            .length >
+                                        pageNumber
+                                    ? null
+                                    : () async {
+                                        if (await validatePageAndFillUpInMemoryQuizQuestion()) {
+                                          if (widget.quizLevel ==
+                                                  Constant.quiz.quizLevels
+                                                          .length -
+                                                      1 &&
+                                              Constant
+                                                      .quiz
+                                                      .quizLevels[
+                                                          widget.quizLevel]
+                                                      .levelQuizQuestions
+                                                      .length ==
+                                                  pageNumber - 1) {
+
+                                            setState((){
+                                              Constant.isBusy = true;
+                                            });
+                                            pageNumber = 0;
+                                            //TODO: Check isCooking bool updated ?
+                                            Constant.quiz.isCooking = false;
+
+                                            await _firestore
+                                                .collection('quiz')
+                                                .doc(Constant.quiz.quizId)
+                                                .set(Constant.quiz.toJson()).then((value) {
+                                              Constant.quiz = Constant.newQuiz;
+                                              Constant.quizLevelCollection = null;
+                                              Constant.levelQuestionsAnswers.clear();
+                                              Constant.totalCorrectAnswersAcrossLevels = 0;
+                                              Constant.hasPopupBeenShownForThisQuizAttempt = false;
+                                              setState((){
+                                                Constant.isBusy = false;
+                                              });
+                                              Navigator.popUntil(context,
+                                                      (route) => route.isFirst);
+                                            });
+
+                                          } else {
+                                            if (widget.isEditing)
+                                              Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          NewQuiz(
+                                                              Constant.quiz
+                                                                  .quizId,
+                                                              widget.quizLevel +
+                                                                  1,
+                                                              true)));
+                                            else
+                                              Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          QuizLevelConfiguration(
+                                                              widget.quizLevel +
+                                                                  1)));
+                                          }
+                                        }
+                                      },
+                                child: Text(widget.quizLevel ==
+                                        Constant.quiz.quizLevels.length - 1
+                                    ? 'Publish Quiz'
+                                    : 'Next Level'),
+                                style: ElevatedButton.styleFrom(
+                                  primary: Constant.colorTwo,
+                                  side: const BorderSide(
+                                    width: 1.0,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 20,
+                              ),
+                              ElevatedButton(
+                                onPressed: pageNumber <
+                                        Constant
+                                            .quiz
+                                            .quizLevels[widget.quizLevel]
+                                            .levelQuizQuestions
+                                            .length
+                                    ? () async {
+                                        await validatePageAndFillUpInMemoryQuizQuestion();
+                                      }
+                                    : null,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: const Text('Next Ques'),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  primary: Constant.colorTwo,
+                                  side: const BorderSide(
+                                    width: 1.0,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      duration: const Duration(milliseconds: 250),
+                        ),
+                      ],
                     ),
+                    duration: const Duration(milliseconds: 250),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -488,7 +338,7 @@ class _NewQuizState extends State<NewQuiz> with SingleTickerProviderStateMixin {
             : '';
       }
     }
-    if (_formKey.currentState!.validate() &&
+    if (
         Constant
             .quiz
             .quizLevels[widget.quizLevel]
@@ -497,7 +347,6 @@ class _NewQuizState extends State<NewQuiz> with SingleTickerProviderStateMixin {
                 .levelQuizQuestions[pageNumber - 1].correctAnswerOption]
             .optionText
             .isNotEmpty) {
-      print('VALIDATED');
       await removeAllEmptyOptionItemsForQuestion();
 
       setState(() => pageNumber++);
@@ -535,40 +384,6 @@ class _NewQuizState extends State<NewQuiz> with SingleTickerProviderStateMixin {
             .levelQuizQuestions[pageNumber - 1].answerOptions
             .indexWhere((element) => element.optionText == correctAnswer);
   }
-
-  Future pickImage() async {
-    //Get the file from the image picker and store it
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    setState(() {
-      if (pickedFile != null) {
-        _image = File(pickedFile.path);
-        isImageUpdated = true;
-        _previousImage = Constant
-                .quiz
-                .quizLevels[widget.quizLevel]
-                .levelQuizQuestions[pageNumber - 1]
-                .questionGiphyOrImageUrl
-                .isNotEmpty
-            ? Constant.quiz.quizLevels[widget.quizLevel]
-                .levelQuizQuestions[pageNumber - 1].questionGiphyOrImageUrl
-            : '';
-      }
-    });
-  }
-
-  Future uploadPic() async {
-    try {
-      await FirebaseStorage.instance
-          .ref('quiz_images')
-          .child(Uuid().v1())
-          .putFile(_image)
-          .then((value) async {
-        imageDownloadUrl = await value.ref.getDownloadURL();
-      });
-    } catch (e) {
-      print('Exception occurred: $e');
-    }
-  }
 }
 
 class Line extends StatelessWidget {
@@ -590,7 +405,6 @@ class Page extends StatefulWidget {
   final String question;
   final List<String> answers;
   final Map<String, dynamic> mappedQuestionsAndAnswers;
-  final giphyGif;
 
   const Page({
     Key? key,
@@ -599,7 +413,6 @@ class Page extends StatefulWidget {
     required this.answers,
     required this.quizLevel,
     required this.mappedQuestionsAndAnswers,
-    required this.giphyGif,
   }) : super(key: key);
 
   @override
@@ -1076,17 +889,17 @@ class ArrowIcons extends StatelessWidget {
   }
 }
 
-class Plane extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: 32.0 + 8,
-      top: 32,
-      child: Container(
-        height: 60,
-        width: 60,
-        child: Image.asset('assets/icon.png'),
-      ),
-    );
-  }
-}
+// class Plane extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Positioned(
+//       left: 32.0 + 8,
+//       top: 32,
+//       child: Container(
+//         height: 60,
+//         width: 60,
+//         child: Image.asset('assets/BowlingPin.png'),
+//       ),
+//     );
+//   }
+// }

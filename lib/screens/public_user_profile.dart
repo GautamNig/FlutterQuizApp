@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_quiz_app/helpers/Constants.dart';
+import 'package:flutter_quiz_app/helpers/constant.dart';
 import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_user.dart';
 
 class UserPublicProfile extends StatefulWidget {
@@ -34,7 +34,7 @@ class _UserPublicProfileState extends State<UserPublicProfile> {
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           appBar: AppBar(
-            backgroundColor: Constant.colorThree,
+            backgroundColor: Constant.colorTwo,
             actions: [],
             title: Text(
               clickedUser.username,
@@ -54,9 +54,9 @@ class _UserPublicProfileState extends State<UserPublicProfile> {
                         padding: const EdgeInsets.only(top: 8.0),
                         child: CircleAvatar(
                           backgroundImage:
-                              clickedUser.userProfilePicUrl.isNotEmpty
+                              clickedUser.photoUrl.isNotEmpty
                                   ? CachedNetworkImageProvider(
-                                      clickedUser.userProfilePicUrl,
+                                      clickedUser.photoUrl,
                                     )
                                   : (AssetImage(Constant.defaultUserPic)
                                       as ImageProvider),
@@ -90,12 +90,12 @@ class _UserPublicProfileState extends State<UserPublicProfile> {
                         Expanded(
                           child: SingleChildScrollView(
                             child: Text(
-                              clickedUser.userDescription,
+                              clickedUser.bio,
                               style: TextStyle(
                                 fontSize: 16.0,
                                 fontStyle: FontStyle.italic,
                                 fontWeight: FontWeight.w300,
-                                color: Colors.white38,
+                                color: Colors.white,
                                 letterSpacing: 2.0,
                               ),
                             ),

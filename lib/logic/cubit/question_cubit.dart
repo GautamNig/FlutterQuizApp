@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
-import 'package:flutter_quiz_app/helpers/Constants.dart';
+import 'package:flutter_quiz_app/helpers/constant.dart';
 import 'package:flutter_quiz_app/logic/cubit/question_state.dart';
 
 class QuestionCubit extends Cubit<QuestionState> {

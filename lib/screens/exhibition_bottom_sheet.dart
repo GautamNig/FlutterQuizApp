@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_quiz_app/helpers/Constants.dart';
+import 'package:flutter_quiz_app/helpers/constant.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const double minHeight = 120;
@@ -41,7 +41,7 @@ class _ExhibitionBottomSheetState extends State<ExhibitionBottomSheet>
   double iconTopMargin(int index) =>
       lerp(iconStartMarginTop,
           iconEndMarginTop + index * (iconsVerticalSpacing + iconEndSize)) +
-      headerTopMargin;
+          headerTopMargin;
 
   double iconLeftMargin(int index) =>
       lerp(index * (iconsHorizontalSpacing + iconStartSize), 0);
@@ -113,6 +113,15 @@ class _ExhibitionBottomSheetState extends State<ExhibitionBottomSheet>
 
   Widget _buildIcon(Event event) {
     int index = events.indexOf(event);
+    String imgPath = "";
+    switch(event.title){
+      case 'Name 1': imgPath='assets/Part1.png';
+      break;
+      case 'Name 2': imgPath='assets/Part2.png';
+      break;
+      case 'Name 3': imgPath='assets/Youtube_icon.png';
+      break;
+    }
     return Positioned(
       height: iconSize,
       width: iconSize,
@@ -127,8 +136,11 @@ class _ExhibitionBottomSheetState extends State<ExhibitionBottomSheet>
             height: MediaQuery.of(context).size.height * 0.3,
             alignment: Alignment(lerp(1, 0), 0),
             decoration: BoxDecoration(
-              image: DecorationImage(
-                image: CachedNetworkImageProvider(event.assetName),
+              image:  event.picUrl.isEmpty ? DecorationImage(
+                image:  AssetImage(imgPath),
+                fit: BoxFit.cover,
+              ) : DecorationImage(
+                image: CachedNetworkImageProvider(event.picUrl),
                 fit: BoxFit.cover,
               ),
             ),
@@ -188,15 +200,15 @@ class ExpandedEventItem extends StatelessWidget {
 
   const ExpandedEventItem(
       {Key? key,
-      required this.topMargin,
-      required this.height,
-      required this.isVisible,
-      required this.borderRadius,
-      required this.title,
-      required this.date,
-      required this.topText,
-      required this.bottomText,
-      required this.leftMargin})
+        required this.topMargin,
+        required this.height,
+        required this.isVisible,
+        required this.borderRadius,
+        required this.title,
+        required this.date,
+        required this.topText,
+        required this.bottomText,
+        required this.leftMargin})
       : super(key: key);
 
   @override
@@ -239,7 +251,7 @@ class ExpandedEventItem extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: Constant.colorTwo
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -249,7 +261,7 @@ class ExpandedEventItem extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w300,
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: Colors.black45,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -260,7 +272,7 @@ class ExpandedEventItem extends StatelessWidget {
           ),
           Row(
             children: <Widget>[
-              Icon(Icons.place, color: Colors.grey.shade400, size: 16),
+              Icon(Icons.place, color: Colors.blueAccent, size: 16),
               SizedBox(
                 width: 10,
               ),
@@ -270,7 +282,7 @@ class ExpandedEventItem extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: bottomText,
-                        style: TextStyle(color: Colors.blue),
+                        style: TextStyle(color: Colors.blueAccent),
                         recognizer: TapGestureRecognizer()
                           ..onTap = () { launch(bottomText);
                           },
@@ -291,13 +303,16 @@ class ExpandedEventItem extends StatelessWidget {
 final List<Event> events = [];
 
 class Event {
-  final String assetName;
+  final String picUrl;
   final String title;
   final String topText;
   final String bottomText;
   final String date;
 
-  Event(this.assetName, this.title, this.topText, this.bottomText, this.date);
+  Event(this.picUrl,
+      this.title,
+      this.topText,
+      this.bottomText, this.date);
 }
 
 class SheetHeader extends StatelessWidget {

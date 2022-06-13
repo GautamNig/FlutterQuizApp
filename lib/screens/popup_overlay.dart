@@ -1,5 +1,6 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_quiz_app/helpers/Constants.dart';
+import 'package:flutter_quiz_app/helpers/constant.dart';
 import 'package:lottie/lottie.dart' as lot;
 
 class PopupOverlay extends ModalRoute<void> {
@@ -20,13 +21,14 @@ class PopupOverlay extends ModalRoute<void> {
 
   @override
   bool get maintainState => true;
-
+  AudioCache audioCache = AudioCache();
   @override
   Widget buildPage(
     BuildContext context,
     Animation<double> animation,
     Animation<double> secondaryAnimation,
   ) {
+    audioCache.play('strike.mp3', mode: PlayerMode.LOW_LATENCY);
     // This makes sure that text and other content follows the material style
     return Material(
       type: MaterialType.canvas,
@@ -40,42 +42,56 @@ class PopupOverlay extends ModalRoute<void> {
   }
 
   Widget _buildOverlayContent(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        SizedBox(
-          height: 22,
-        ),
-        Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Text('Good Job! All correct answers for the level.', style: TextStyle(fontSize: 18,
-              fontWeight: FontWeight.bold, fontStyle: FontStyle.italic, color: Color(Constant.popupOverlayTextColorIntValue)),),
-        ),
-        Expanded(
-          child: lot.Lottie.network(Constant.imageResources
-              .firstWhere((element) => element.name == 'QuizPage')
-              .url),
-        ),
-        SizedBox(
-          height: 12,
-        ),
-        Text(
-          Constant.screenDynamicText
-              .firstWhere((element) => element.screenName == 'QuizPage')
-              .screenTexts[0],
-          style: TextStyle(fontSize: 6, color: Color(Constant.popupOverlayTextColorIntValue)),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context),
-          style: ElevatedButton.styleFrom(
-            primary: Constant.colorThree,
-            side: BorderSide(
-              width: 1.0,
-              color: Colors.white,
+    return Container(
+      decoration: Constant.backgroundDecoration,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: lot.Lottie.network(Constant.imageResources
+                  .firstWhere((element) => element.name == 'PopupOverlay')
+                  .url),
             ),
           ),
-          child: Text('Continue!'),
-        )
-      ],
+          SizedBox(
+            height: 22,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14.0),
+            child: Text(
+              'You got all correct answers for this level.',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  fontStyle: FontStyle.italic,
+                  color: Color(Constant.popupOverlayTextColorIntValue)),
+            ),
+          ),
+          SizedBox(
+            height: 12,
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              primary: Constant.colorThree,
+              side: BorderSide(
+                width: 1.0,
+                color: Colors.white,
+              ),
+            ),
+            child: Text('Great Job!'),
+          ),
+          Constant.createAttributionAlignWidget(
+              Constant.screenDynamicText
+                  .firstWhere((element) => element.screenName == 'PopupOverlay')
+                  .screenTexts[0],
+              Constant.screenDynamicText
+                  .firstWhere((element) => element.screenName == 'PopupOverlay')
+                  .screenTexts[1])
+        ],
+      ),
     );
   }
 

@@ -11,64 +11,48 @@ String chartDataToJson(ChartData data) => json.encode(data.toJson());
 
 class ChartData {
   ChartData({
-    required this.chartDynamicText,
     required this.chartGroupedData,
+    required this.chartDynamicText,
   });
 
-  List<ChartDynamicText> chartDynamicText;
   List<ChartGroupedData> chartGroupedData;
+  List<String> chartDynamicText;
 
   factory ChartData.fromJson(Map<String, dynamic> json) => ChartData(
-    chartDynamicText: List<ChartDynamicText>.from(json["ChartDynamicText"].map((x) => ChartDynamicText.fromJson(x))),
     chartGroupedData: List<ChartGroupedData>.from(json["ChartGroupedData"].map((x) => ChartGroupedData.fromJson(x))),
+    chartDynamicText: List<String>.from(json["ChartDynamicText"].map((x) => x)),
   );
 
   Map<String, dynamic> toJson() => {
-    "ChartDynamicText": List<dynamic>.from(chartDynamicText.map((x) => x.toJson())),
     "ChartGroupedData": List<dynamic>.from(chartGroupedData.map((x) => x.toJson())),
-  };
-}
-
-class ChartDynamicText {
-  ChartDynamicText({
-    required this.tagName,
-    required this.tagTexts,
-  });
-
-  String tagName;
-  List<String> tagTexts;
-
-  factory ChartDynamicText.fromJson(Map<String, dynamic> json) => ChartDynamicText(
-    tagName: json["TagName"],
-    tagTexts: List<String>.from(json["TagTexts"].map((x) => x)),
-  );
-
-  Map<String, dynamic> toJson() => {
-    "TagName": tagName,
-    "TagTexts": List<dynamic>.from(tagTexts.map((x) => x)),
+    "ChartDynamicText": List<dynamic>.from(chartDynamicText.map((x) => x)),
   };
 }
 
 class ChartGroupedData {
   ChartGroupedData({
-    required this.number,
-    required this.value2,
-    required this.value1,
+    required this.x,
+    required this.y,
+    required this.y1,
+    required this.y2,
   });
 
-  int number;
-  double value2;
-  double value1;
+  String x;
+  num? y;
+  num? y1;
+  num? y2;
 
   factory ChartGroupedData.fromJson(Map<String, dynamic> json) => ChartGroupedData(
-    number: json["number"],
-    value2: json["value2"],
-    value1: json["value1"],
+    x: json["x"],
+    y: json["y"],
+    y1: json["y1"],
+    y2: json["y2"],
   );
 
   Map<String, dynamic> toJson() => {
-    "number": number,
-    "value2": value2,
-    "value1": value1,
+    "x": x,
+    "y": y,
+    "y1": y1,
+    "y2": y2,
   };
 }

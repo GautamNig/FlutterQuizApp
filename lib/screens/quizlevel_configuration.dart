@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quiz_app/json_parsers/json_parser_firebase_questions.dart';
 import 'package:flutter_quiz_app/screens/new_quiz.dart';
-
+import 'package:flutter_quiz_app/widgets/header.dart';
 import '../helpers/constant.dart';
 
 class QuizLevelConfiguration extends StatefulWidget {
@@ -30,9 +30,7 @@ class _QuizLevelConfigurationState extends State<QuizLevelConfiguration> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Constant.colorThree,
-      appBar: AppBar(
-        backgroundColor: Constant.appBarColor,
-      ),
+      appBar: header(context, titleText: 'Configure Quiz Level'),
       body: Container(
         height: MediaQuery.of(context).size.height,
         width: MediaQuery.of(context).size.width,
@@ -122,28 +120,13 @@ class _QuizLevelConfigurationState extends State<QuizLevelConfiguration> {
                 },
                 child: const Text('Configure Questions'),
                 style: ElevatedButton.styleFrom(
-                  primary: Constant.appBarColor,
+                  primary: Constant.colorTwo,
                   side: const BorderSide(
                     width: 1.0,
                     color: Colors.white,
                   ),
                 ),
               ),
-              // SizedBox(
-              //   height: 20,
-              // ),
-              // ElevatedButton(
-              //     onPressed: () {
-              //       Constant.quiz.quizLevels[widget.quizLevel].levelName =
-              //           _levelNameTextEditingController.text;
-              //
-              //       Navigator.push(
-              //           context,
-              //           MaterialPageRoute(
-              //               builder: (context) =>
-              //                   QuizLevelJson()));
-              //     },
-              //     child: Text('Configure Questions (Using JSON)'))
             ]),
           ),
         ),
